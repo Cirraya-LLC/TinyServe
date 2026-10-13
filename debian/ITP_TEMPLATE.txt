@@ -10,7 +10,7 @@ X-Debbugs-Cc: debian-devel@lists.debian.org
 * Package name    : tinyserve
   Version         : 0.3.1
   Upstream Author : Derrity <derrity0731@proton.me>
-* URL             : https://github.com/Derrity/TinyServe
+* URL             : https://github.com/Cirraya-LLC/TinyServe
 * License         : MIT (Expat)
   Programming Lang: C
   Description     : minimal multi-worker HTTP server built on libuv

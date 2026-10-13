@@ -9,7 +9,7 @@ I am looking for a sponsor for my package "tinyserve":
  * Package name     : tinyserve
    Version          : 0.3.1-1
    Upstream contact : Derrity <derrity0731@proton.me>
- * URL              : https://github.com/Derrity/TinyServe
+ * URL              : https://github.com/Cirraya-LLC/TinyServe
  * License          : MIT (Expat)
    Section          : web
 

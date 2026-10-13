@@ -44,7 +44,7 @@ xmake install -o /usr/local   # optional system-wide install
 
 Each tagged release publishes ready-to-run binaries (Linux amd64,
 Linux arm64, macOS arm64, plus a Debian/Ubuntu `.deb`) on the
-[GitHub Releases page](https://github.com/Derrity/TinyServe/releases).
+[GitHub Releases page](https://github.com/Cirraya-LLC/TinyServe/releases).
 
 ## Usage
 

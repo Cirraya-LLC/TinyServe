@@ -8,9 +8,9 @@ Build-Depends: debhelper-compat (= 13),
                libuv1-dev
 Standards-Version: 4.7.0
 Rules-Requires-Root: no
-Homepage: https://github.com/Derrity/TinyServe
-Vcs-Git: https://github.com/Derrity/TinyServe.git
-Vcs-Browser: https://github.com/Derrity/TinyServe
+Homepage: https://github.com/Cirraya-LLC/TinyServe
+Vcs-Git: https://github.com/Cirraya-LLC/TinyServe.git
+Vcs-Browser: https://github.com/Cirraya-LLC/TinyServe
 
 Package: tinyserve
 Architecture: any

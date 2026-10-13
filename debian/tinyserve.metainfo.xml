@@ -23,8 +23,8 @@
       and a read-only document root).
     </p>
   </description>
-  <url type="homepage">https://github.com/Derrity/TinyServe</url>
-  <url type="bugtracker">https://github.com/Derrity/TinyServe/issues</url>
+  <url type="homepage">https://github.com/Cirraya-LLC/TinyServe</url>
+  <url type="bugtracker">https://github.com/Cirraya-LLC/TinyServe/issues</url>
   <provides>
     <binary>tinyserve</binary>
   </provides>
