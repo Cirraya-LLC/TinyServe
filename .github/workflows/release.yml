@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+  # Builds every target without publishing anything, to try a change to this file
+  # before cutting a tag (a released version cannot be taken back).
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -16,80 +19,86 @@ jobs:
         include:
           - target: linux-amd64
             os: ubuntu-22.04
-            cross: false
+            cmake_args: ""
+            strip: strip
+            file_arch: x86-64
           - target: linux-arm64
             os: ubuntu-22.04
-            cross: true
+            cmake_args: >-
+              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
+              -DCMAKE_SYSTEM_NAME=Linux
+              -DCMAKE_SYSTEM_PROCESSOR=aarch64
+            strip: aarch64-linux-gnu-strip
+            file_arch: aarch64
           - target: darwin-arm64
             os: macos-latest
-            cross: false
+            cmake_args: -DCMAKE_OSX_ARCHITECTURES=arm64
+            strip: strip
+            file_arch: arm64
+          - target: darwin-amd64
+            os: macos-latest
+            cmake_args: -DCMAKE_OSX_ARCHITECTURES=x86_64
+            strip: strip
+            file_arch: x86_64
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.target }}
+    env:
+      LIBUV_VERSION: v1.48.0
+      # The oldest macOS the binaries start on. Unset, they inherit the runner's own
+      # version and refuse to load on anything older.
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
 
     steps:
       - uses: actions/checkout@v4
 
-      # ── Linux native (amd64) ──
-      - name: Install deps (Linux amd64)
-        if: matrix.target == 'linux-amd64'
+      - name: Install build tools (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq cmake pkg-config libuv1-dev
+          sudo apt-get install -y -qq cmake
+          if [ "${{ matrix.target }}" = linux-arm64 ]; then
+            sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+          fi
 
-      - name: Build (Linux amd64)
-        if: matrix.target == 'linux-amd64'
+      # libuv is built from source as a static library and linked into the binary,
+      # so what a release ships runs on a machine without libuv installed -- which
+      # is what `toy install` and a plain download both expect. (The .deb below is
+      # the exception: Debian wants the system libuv.)
+      - name: Build static libuv
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O2"
-          cmake --build build -j$(nproc)
-          strip build/tinyserve
-
-      # ── Linux cross (arm64) ──
-      - name: Install deps & cross-build libuv (Linux arm64)
-        if: matrix.target == 'linux-arm64'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq cmake gcc-aarch64-linux-gnu
-
-          # Build libuv from source for aarch64
-          git clone --depth 1 --branch v1.48.0 https://github.com/libuv/libuv.git /tmp/libuv-src
-          cmake -S /tmp/libuv-src -B /tmp/libuv-build \
-            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-            -DCMAKE_SYSTEM_NAME=Linux \
-            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-            -DCMAKE_INSTALL_PREFIX=/tmp/libuv-arm64 \
+          git clone --depth 1 --branch "$LIBUV_VERSION" https://github.com/libuv/libuv.git /tmp/libuv-src
+          cmake -S /tmp/libuv-src -B /tmp/libuv-build ${{ matrix.cmake_args }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/tmp/libuv-static \
             -DCMAKE_INSTALL_LIBDIR=lib \
             -DBUILD_TESTING=OFF \
             -DLIBUV_BUILD_SHARED=OFF
-          cmake --build /tmp/libuv-build -j$(nproc)
+          cmake --build /tmp/libuv-build -j4
           cmake --install /tmp/libuv-build
 
-      - name: Build (Linux arm64)
-        if: matrix.target == 'linux-arm64'
+      - name: Build
         run: |
-          cmake -S . -B build \
-            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-            -DCMAKE_SYSTEM_NAME=Linux \
-            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_FLAGS="-O2" \
-            -DCMAKE_PREFIX_PATH=/tmp/libuv-arm64 \
-            -DLIBUV_INCLUDE_DIRS=/tmp/libuv-arm64/include \
-            -DLIBUV_LIBRARIES=/tmp/libuv-arm64/lib/libuv.a
-          cmake --build build -j$(nproc)
-          aarch64-linux-gnu-strip build/tinyserve
+          cmake -S . -B build ${{ matrix.cmake_args }} \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O2" \
+            -DLIBUV_INCLUDE_DIRS=/tmp/libuv-static/include \
+            -DLIBUV_LIBRARIES=/tmp/libuv-static/lib/libuv.a
+          cmake --build build -j4
+          ${{ matrix.strip }} build/tinyserve
 
-      # ── macOS ──
-      - name: Install deps (macOS)
-        if: runner.os == 'macOS'
-        run: brew install libuv cmake pkg-config
-
-      - name: Build (macOS)
-        if: runner.os == 'macOS'
+      # Refuse to ship a binary that would need libuv installed, or one built for
+      # a different architecture than its name says.
+      - name: Check what was built
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O2"
-          cmake --build build -j$(sysctl -n hw.ncpu)
-          strip build/tinyserve
+          set -euo pipefail
+          file build/tinyserve
+          file build/tinyserve | grep -q '${{ matrix.file_arch }}' \
+            || { echo "::error::build/tinyserve is not ${{ matrix.file_arch }}"; exit 1; }
+          if [ "$RUNNER_OS" = macOS ]; then deps=$(otool -L build/tinyserve); else deps=$(readelf -d build/tinyserve | grep NEEDED); fi
+          echo "$deps"
+          if echo "$deps" | grep -qi libuv; then
+            echo "::error::build/tinyserve links a shared libuv"; exit 1
+          fi
 
       # ── Package as a tarball with binary + docs + man page ──
       - name: Package tarball
@@ -114,7 +123,7 @@ jobs:
         if: matrix.target == 'linux-amd64'
         run: |
           sudo apt-get install -y --no-install-recommends \
-            debhelper devscripts fakeroot dh-make systemd
+            debhelper devscripts fakeroot dh-make systemd pkg-config libuv1-dev
           # Clean any prior CMake build artefacts in workspace; debuild
           # uses its own build dir under obj-*.
           rm -rf debian/.debhelper debian/files debian/tinyserve \
@@ -145,8 +154,11 @@ jobs:
 
   release:
     needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -154,6 +166,21 @@ jobs:
 
       - name: List artifacts
         run: find artifacts -type f | sort
+
+      # `toy install github:Cirraya-LLC/TinyServe` finds this release's files by the
+      # names in toy.toml. A name that does not match what was built only surfaces
+      # when somebody tries to install, so refuse to publish instead.
+      - name: Check toy.toml against the files being released
+        run: |
+          set -euo pipefail
+          V="${GITHUB_REF_NAME#v}"
+          names=$(sed -n 's/^"[^"]*"[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' toy.toml)
+          [ -n "$names" ] || { echo "::error::toy.toml lists no artifacts"; exit 1; }
+          for n in $names; do
+            f="${n//\{version\}/$V}"; f="${f//\{tag\}/$GITHUB_REF_NAME}"
+            if [ -f "artifacts/$f" ]; then echo "ok  $f"
+            else echo "::error::toy.toml names $f, which this release does not have"; exit 1; fi
+          done
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

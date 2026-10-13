@@ -1,0 +1,19 @@
+# How `toy install github:Cirraya-LLC/TinyServe` finds this project's release files
+# (https://github.com/Cirraya-LLC/toy). Only asset names: the version comes from the
+# git tag, so this file does not change between releases. The names must match what
+# .github/workflows/release.yml uploads; its release job checks that before publishing.
+name     = "tinyserve"
+desc     = "a tiny single-binary HTTP file server, stub HTTP server and TCP port forwarder"
+license  = "MIT"
+homepage = "https://github.com/Cirraya-LLC/TinyServe"
+
+[bin]
+# Each tarball wraps everything in tinyserve-<version>-<target>/; toy strips that
+# single top-level directory, so the binary sits at the package root.
+tinyserve = "tinyserve"
+
+[artifact]
+"linux/amd64"  = "tinyserve-{version}-linux-amd64.tar.gz"
+"linux/arm64"  = "tinyserve-{version}-linux-arm64.tar.gz"
+"darwin/amd64" = "tinyserve-{version}-darwin-amd64.tar.gz"
+"darwin/arm64" = "tinyserve-{version}-darwin-arm64.tar.gz"

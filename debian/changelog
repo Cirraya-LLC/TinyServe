@@ -1,3 +1,12 @@
+tinyserve (0.3.2-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Upstream moved to https://github.com/Cirraya-LLC/TinyServe.
+    - Upstream release binaries now link libuv statically; this package
+      still builds against the system libuv.
+
+ -- Derrity <derrity0731@proton.me>  Tue, 13 Oct 2026 04:34:28 +0000
+
 tinyserve (0.3.1-1) unstable; urgency=medium
 
   * New upstream release. (Closes: #1134907)

@@ -43,8 +43,17 @@ xmake install -o /usr/local   # optional system-wide install
 ### Pre-built binaries
 
 Each tagged release publishes ready-to-run binaries (Linux amd64,
-Linux arm64, macOS arm64, plus a Debian/Ubuntu `.deb`) on the
+Linux arm64, macOS arm64 and amd64, plus a Debian/Ubuntu `.deb`) on the
 [GitHub Releases page](https://github.com/Cirraya-LLC/TinyServe/releases).
+They link libuv statically, so nothing else needs to be installed; the
+`.deb` uses the system libuv, as Debian expects.
+
+With [toy](https://github.com/Cirraya-LLC/toy), which installs release
+binaries without running any script:
+
+```bash
+toy install github:Cirraya-LLC/TinyServe
+```
 
 ## Usage
 

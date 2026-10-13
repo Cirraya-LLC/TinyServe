@@ -31,6 +31,19 @@ cmake --build build
 # 产物: ./build/tinyserve
 ```
 
+### 预编译二进制
+
+每个 tag 都会在 [GitHub Releases](https://github.com/Cirraya-LLC/TinyServe/releases)
+发布可直接运行的二进制（Linux amd64、Linux arm64、macOS arm64 和 amd64），外加一个
+Debian/Ubuntu 用的 `.deb`。二进制静态链接了 libuv，不用另装任何东西；`.deb` 按 Debian
+的惯例使用系统的 libuv。
+
+用 [toy](https://github.com/Cirraya-LLC/toy) 安装（只装发布好的二进制，不执行任何脚本）：
+
+```bash
+toy install github:Cirraya-LLC/TinyServe
+```
+
 ## 用法
 
 ```

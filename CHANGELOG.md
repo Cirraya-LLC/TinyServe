@@ -4,6 +4,23 @@ All notable changes to TinyServe are recorded here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/) and the project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.2 — 2026-10-13
+
+### Added
+- `toy.toml`: `toy install github:Cirraya-LLC/TinyServe` installs the
+  release binary. The release job refuses to publish if a name in it does
+  not match a file being released.
+- macOS amd64 (Intel) release binary.
+
+### Changed
+- Release binaries link libuv statically on every platform. The
+  linux-amd64 and darwin-arm64 binaries used to need libuv installed (the
+  macOS one looked for Homebrew's); the release job now checks that no
+  binary links a shared libuv. The `.deb` still uses the system libuv.
+- macOS binaries start on macOS 11 and later, instead of only on the
+  version of the machine that built them.
+- The repository moved to https://github.com/Cirraya-LLC/TinyServe.
+
 ## 0.3.1 — 2026-04-25
 
 ### Added
